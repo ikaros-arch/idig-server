@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Initialize the project and add a default user if not already done
-if [ ! -d "/data/K25" ]; then
+if [ ! -d "/data/KNS-Dhaskalio Project" ]; then
   ./idig-server create "KNS-Dhaskalio Project"
   ./idig-server adduser "KNS-Dhaskalio Project" admin manolis2016
 fi
