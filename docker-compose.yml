@@ -1,0 +1,14 @@
+name: idig-server
+services:
+# Go application service
+  idig-server:
+    container_name: idig-server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - 9000:9000
+    environment:
+      - IDIG_SERVER_DIR=/data
+    volumes:
+      - ./data:/data

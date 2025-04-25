@@ -57,3 +57,19 @@ listen for localhost connections. e.g.:
 ```
 idig-server start -p 4000
 ```
+
+## Running with Docker Compose
+
+To build and run the iDig Server using Docker Compose, ensure you have Docker and Docker Compose installed. Then, run the following command from the root directory of the project:
+
+```
+docker-compose up --build
+```
+
+This will build the Go application and start the server on port 9000. The server data will be stored in the `data` directory in the project root.
+
+To stop the server, press `Ctrl+C` and run:
+
+```
+docker-compose down
+```
