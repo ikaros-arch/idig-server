@@ -14,7 +14,7 @@ COPY ./src .
 # Build the Go application
 RUN go build -o idig-server
 RUN ./idig-server create K25
-RUN ./idig-server adduser admin manolis2016
+RUN ./idig-server adduser K25 admin manolis2016
 
 # Stage 2: Run the application
 FROM debian:bullseye-slim
