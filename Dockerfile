@@ -15,7 +15,7 @@ COPY ./src .
 RUN go build -o idig-server
 
 # Stage 2: Run the application
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 # Set the working directory inside the container
 WORKDIR /app
