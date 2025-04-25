@@ -13,8 +13,6 @@ COPY ./src .
 
 # Build the Go application
 RUN go build -o idig-server
-RUN ./idig-server create K25
-RUN ./idig-server adduser K25 admin manolis2016
 
 # Stage 2: Run the application
 FROM debian:bullseye-slim
@@ -25,8 +23,14 @@ WORKDIR /app
 # Copy the built binary from the builder stage
 COPY --from=builder /app/idig-server .
 
+# Copy the entrypoint script
+COPY ./entrypoint.sh .
+
+# Make the entrypoint script executable
+RUN chmod +x entrypoint.sh
+
 # Expose the port the application runs on
 EXPOSE 9000
 
-# Set the default command to run the application
-CMD ["./idig-server", "start"]
+# Set the entrypoint script as the default command
+ENTRYPOINT ["./entrypoint.sh"]
