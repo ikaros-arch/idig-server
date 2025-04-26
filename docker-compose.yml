@@ -6,9 +6,13 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    restart: unless-stopped
     ports:
       - 9000:9000
     environment:
       - IDIG_SERVER_DIR=/data
+      - PROJECT_NAME=KNS-Dhaskalio
+      - ADMIN_USER=admin
+      - ADMIN_PASSWORD=manolis2016
     volumes:
       - ./data:/data
