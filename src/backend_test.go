@@ -2,6 +2,8 @@ package main
 
 import (
 	"fmt"
+	"log"
+	"os"
 	"sort"
 	"testing"
 
@@ -69,6 +71,54 @@ func TestAttachments(t *testing.T) {
 	}
 }
 
+func TestListAttachments(t *testing.T) {
+	b, err := NewMemoryBackend("test-user", "test-trench")
+	if err != nil {
+		t.Error(err)
+	}
+
+	// Initially empty
+	attachments, err := b.ListAttachments()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(attachments) != 0 {
+		t.Errorf("Expected 0 attachments, got %d", len(attachments))
+	}
+
+	// Add some attachments
+	err = b.WriteAttachment("photo.jpg", "2023-07-05T09:39:36Z", []byte("photo data"))
+	if err != nil {
+		t.Error(err)
+	}
+	err = b.WriteAttachment("document.pdf", "2023-06-21T10:15:30Z", []byte("pdf data"))
+	if err != nil {
+		t.Error(err)
+	}
+
+	// List should return both
+	attachments, err = b.ListAttachments()
+	if err != nil {
+		t.Error(err)
+	}
+	if len(attachments) != 2 {
+		t.Errorf("Expected 2 attachments, got %d", len(attachments))
+	}
+
+	// Check attachment contents
+	found := make(map[string]string)
+	for _, att := range attachments {
+		found[att.Name] = att.Checksum
+	}
+
+	if found["photo.jpg"] != "2023-07-05T09:39:36Z" {
+		t.Errorf("Expected photo.jpg with checksum 2023-07-05T09:39:36Z")
+	}
+	if found["document.pdf"] != "2023-06-21T10:15:30Z" {
+		t.Errorf("Expected document.pdf with checksum 2023-06-21T10:15:30Z")
+	}
+}
+
 func TestTrench(t *testing.T) {
 	b, err := NewMemoryBackend("test-user", "test-trench")
 	assertNoError(t, err)
@@ -116,6 +166,35 @@ func TestWritePreferences(t *testing.T) {
 	assertEqualSurveys(t, surveys, surveysAtHead)
 }
 
+// Benchmark adding a single survey to a trench containing a lot of surveys
+func BenchmarkAddSurvey(b *testing.B) {
+	root, err := os.MkdirTemp("", "idig-server.bench")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(root)
+
+	backend, err := NewBackend(root, "bench-user", "bench-trench")
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	// Initial commit, skip the last survey
+	surveys := generateSurveys(10001)
+	_, err = backend.WriteTrench("init", "", nil, surveys[:10000])
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.ResetTimer()
+
+	// Commit the remaining survey
+	_, err = backend.WriteTrench("final", "", nil, surveys)
+	if err != nil {
+		b.Fatal(err)
+	}
+}
+
 func assertNoError(t *testing.T, err error) {
 	if err != nil {
 		t.Error(err)
@@ -135,7 +214,9 @@ func assertEqualSurveys(t *testing.T, actual []Survey, expected []Survey) {
 	expectedKeys := maps.Keys(expectedMap)
 	sort.Strings(actualKeys)
 	sort.Strings(expectedKeys)
-	slices.Equal(actualKeys, expectedKeys)
+	if !slices.Equal(actualKeys, expectedKeys) {
+		t.Errorf("Survey list differs")
+	}
 }
 
 func generateSurveys(count int) []Survey {

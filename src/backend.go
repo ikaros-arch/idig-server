@@ -394,7 +394,45 @@ func (b *Backend) attachmentReference(name, checksum string) string {
 	return fmt.Sprintf("refs/attachments/%s", h)
 }
 
+func (b *Backend) ListAttachments() ([]Attachment, error) {
+	refs, err := b.r.References()
+	if err != nil {
+		return nil, err
+	}
+
+	var attachments []Attachment
+	err = refs.ForEach(func(ref *plumbing.Reference) error {
+		if !strings.HasPrefix(ref.Name().String(), "refs/attachments/") {
+			return nil
+		}
+
+		enc := base64.URLEncoding.WithPadding(base64.NoPadding)
+		encoded := strings.TrimPrefix(ref.Name().String(), "refs/attachments/")
+		decoded, err := enc.DecodeString(encoded)
+		if err != nil {
+			return nil
+		}
+
+		parts := strings.SplitN(string(decoded), "/", 2)
+		if len(parts) == 2 {
+			attachments = append(attachments, Attachment{
+				Name:     parts[0],
+				Checksum: parts[1],
+			})
+		}
+		return nil
+	})
+
+	return attachments, err
+}
+
 func (b *Backend) addBlob(data []byte) (plumbing.Hash, error) {
+	// Check if blob already exists
+	hash := plumbing.ComputeHash(plumbing.BlobObject, data)
+	if b.r.Storer.HasEncodedObject(hash) == nil {
+		return hash, nil
+	}
+
 	obj := b.r.Storer.NewEncodedObject()
 	obj.SetType(plumbing.BlobObject)
 	obj.SetSize(int64(len(data)))
@@ -568,9 +606,10 @@ func (s Survey) Attachments() []Attachment {
 		var name, ts string
 		for _, s := range strings.Split(a, "\n") {
 			key, val, _ := strings.Cut(s, "=")
-			if key == "n" {
+			switch key {
+			case "n":
 				name = val
-			} else if key == "d" {
+			case "d":
 				ts = val
 			}
 		}
