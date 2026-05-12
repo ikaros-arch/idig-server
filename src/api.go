@@ -18,11 +18,18 @@ import (
 type Server struct {
 	RootDir string
 
-	r *gin.Engine
+	r       *gin.Engine
+	webhook *WebhookConfig
 }
 
 func NewServer(rootDir string) *Server {
-	s := &Server{RootDir: rootDir}
+	s := &Server{
+		RootDir: rootDir,
+		webhook: LoadWebhookConfig(),
+	}
+	if s.webhook != nil {
+		log.Printf("webhook: enabled, posting to %s", s.webhook.URL)
+	}
 
 	s.r = gin.Default()
 	config := cors.DefaultConfig()
@@ -335,6 +342,10 @@ func (s *Server) SyncTrench(c *gin.Context, b *Backend) (int, any) {
 	resp := SyncResponse{Version: newHead}
 	if newHead != head {
 		resp.Status = StatusPushed
+		// Notify the IKAROS bridge so it can pull just this trench.
+		// Fire-and-forget; failures are logged inside FirePushed.
+		user, _, _ := c.Request.BasicAuth()
+		s.webhook.FirePushed(c.Param("project"), b.Trench, newHead, user)
 	} else {
 		resp.Status = StatusOK
 	}
