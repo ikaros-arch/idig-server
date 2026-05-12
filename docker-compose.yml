@@ -7,12 +7,19 @@ services:
       context: .
       dockerfile: Dockerfile
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
-      - 9000:9000
+      - "${IDIG_SERVER_PORT:-9000}:9000"
     environment:
-      - IDIG_SERVER_DIR=/data
-      - PROJECT_NAME=KNS-Dhaskalio
-      - ADMIN_USER=admin
-      - ADMIN_PASSWORD=manolis2016
+      # Path inside the container; matches the volume mount below.
+      IDIG_SERVER_DIR: /data
+      PROJECT_NAME:    ${PROJECT_NAME}
+      ADMIN_USER:      ${ADMIN_USER}
+      ADMIN_PASSWORD:  ${ADMIN_PASSWORD}
+      # Webhook to the IKAROS bridge (api/idig-sync). Leave both unset
+      # to disable; see src/webhook.go.
+      IDIG_WEBHOOK_URL:    ${IDIG_WEBHOOK_URL}
+      IDIG_WEBHOOK_SECRET: ${IDIG_WEBHOOK_SECRET}
     volumes:
-      - ./data:/data
+      - ${IDIG_DATA_DIR:-./data}:/data
